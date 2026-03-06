@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calm · Panic Button</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Inconsolata:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–ink: #0a0a0f;
+–fog: #e8e4dd;
+–pale: #f5f2ed;
+–warm: #c8b89a;
+–blush: #d4a89a;
+–sage: #8aab96;
+–mist: rgba(232,228,221,0.08);
+}
+
+html, body {
+height: 100%;
+background: var(–ink);
+color: var(–fog);
+font-family: ‘Inconsolata’, monospace;
+overflow: hidden;
+}
+
+/* ── LANDING ── */
+#landing {
+position: fixed; inset: 0;
+display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+gap: 0;
+background: var(–ink);
+z-index: 10;
+transition: opacity 0.8s ease, transform 0.8s ease;
+}
+#landing.exit {
+opacity: 0;
+transform: scale(1.04);
+pointer-events: none;
+}
+
+.brand {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: clamp(1rem, 2vw, 1.2rem);
+font-weight: 300;
+letter-spacing: 0.35em;
+text-transform: uppercase;
+color: var(–warm);
+margin-bottom: 60px;
+opacity: 0.7;
+}
+
+.panic-ring {
+position: relative;
+width: 220px; height: 220px;
+cursor: pointer;
+}
+.panic-ring svg.ring-svg {
+position: absolute; inset: 0;
+width: 100%; height: 100%;
+animation: spin-ring 8s linear infinite;
+}
+@keyframes spin-ring {
+to { transform: rotate(360deg); }
+}
+.panic-ring svg.ring-svg circle {
+fill: none;
+stroke: var(–warm);
+stroke-width: 1;
+stroke-dasharray: 4 12;
+opacity: 0.4;
+}
+
+.panic-btn {
+position: absolute; inset: 20px;
+border-radius: 50%;
+border: 1px solid rgba(200,184,154,0.25);
+background: radial-gradient(ellipse at 40% 35%, rgba(200,184,154,0.12), rgba(10,10,15,0.9) 70%);
+display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+gap: 8px;
+cursor: pointer;
+transition: border-color 0.3s, background 0.3s, transform 0.15s;
+user-select: none;
+-webkit-tap-highlight-color: transparent;
+}
+.panic-btn:hover {
+border-color: rgba(200,184,154,0.6);
+background: radial-gradient(ellipse at 40% 35%, rgba(200,184,154,0.2), rgba(10,10,15,0.85) 70%);
+transform: scale(1.03);
+}
+.panic-btn:active { transform: scale(0.97); }
+
+.panic-label {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: 2.2rem;
+font-weight: 300;
+letter-spacing: 0.05em;
+color: var(–fog);
+line-height: 1;
+}
+.panic-sub {
+font-size: 0.68rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+color: var(–warm);
+opacity: 0.7;
+}
+
+.landing-footer {
+margin-top: 60px;
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+opacity: 0.3;
+text-transform: uppercase;
+}
+
+/* pulse halo */
+.panic-btn::after {
+content: ‘’;
+position: absolute; inset: -8px;
+border-radius: 50%;
+border: 1px solid rgba(200,184,154,0.15);
+animation: halo-pulse 3s ease-in-out infinite;
+}
+@keyframes halo-pulse {
+0%,100% { transform: scale(1); opacity: 0.5; }
+50% { transform: scale(1.08); opacity: 0; }
+}
+
+/* ── SESSION ── */
+#session {
+position: fixed; inset: 0;
+display: none;
+background: var(–ink);
+}
+#session.active { display: block; }
+
+/* camera fills entire screen */
+#cam-wrap {
+position: absolute; inset: 0;
+overflow: hidden;
+}
+#cam-video {
+width: 100%; height: 100%;
+object-fit: cover;
+transform: scaleX(-1); /* mirror */
+filter: brightness(0.55) saturate(0.6);
+}
+
+/* vignette overlay */
+.vignette {
+position: absolute; inset: 0;
+background: radial-gradient(ellipse at center, transparent 35%, rgba(10,10,15,0.75) 100%);
+pointer-events: none;
+}
+
+/* grain */
+.grain {
+position: absolute; inset: 0;
+pointer-events: none;
+opacity: 0.035;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘n’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23n)’/%3E%3C/svg%3E”);
+background-size: 128px;
+}
+
+/* ── BREATHE UI ── */
+#breathe-ui {
+position: absolute; inset: 0;
+display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+gap: 0;
+pointer-events: none;
+}
+
+.phase-label {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: clamp(2.5rem, 6vw, 4.5rem);
+font-weight: 300;
+font-style: italic;
+letter-spacing: 0.04em;
+color: var(–fog);
+text-shadow: 0 0 40px rgba(232,228,221,0.3);
+transition: opacity 0.6s ease;
+min-height: 1.2em;
+text-align: center;
+}
+
+.breath-orb-wrap {
+position: relative;
+width: 200px; height: 200px;
+display: flex; align-items: center; justify-content: center;
+margin: 28px 0;
+}
+
+.orb-ring {
+position: absolute; inset: 0;
+border-radius: 50%;
+border: 1px solid rgba(200,184,154,0.25);
+transition: transform 4s cubic-bezier(0.45, 0, 0.55, 1), opacity 1s;
+}
+.orb-ring.r2 { inset: -16px; border-color: rgba(200,184,154,0.12); }
+.orb-ring.r3 { inset: -32px; border-color: rgba(200,184,154,0.06); }
+
+.orb-core {
+width: 90px; height: 90px;
+border-radius: 50%;
+background: radial-gradient(ellipse at 38% 32%, rgba(212,168,154,0.6), rgba(138,171,150,0.3) 60%, transparent);
+box-shadow: 0 0 40px rgba(200,184,154,0.25), inset 0 0 20px rgba(255,255,255,0.07);
+transition: transform 4s cubic-bezier(0.45, 0, 0.55, 1), box-shadow 1s;
+}
+
+/* breathe-in */
+.breathing-in .orb-ring   { transform: scale(1.55); }
+.breathing-in .orb-ring.r2 { transform: scale(1.45); }
+.breathing-in .orb-ring.r3 { transform: scale(1.35); }
+.breathing-in .orb-core   { transform: scale(1.6); box-shadow: 0 0 60px rgba(200,184,154,0.4), inset 0 0 24px rgba(255,255,255,0.1); }
+
+/* hold */
+.holding .orb-ring   { transform: scale(1.55); }
+.holding .orb-ring.r2 { transform: scale(1.45); }
+.holding .orb-ring.r3 { transform: scale(1.35); }
+.holding .orb-core   { transform: scale(1.6); box-shadow: 0 0 80px rgba(138,171,150,0.5), inset 0 0 28px rgba(255,255,255,0.12); }
+
+/* breathe-out */
+.breathing-out .orb-ring  { transform: scale(1); }
+.breathing-out .orb-ring.r2{ transform: scale(1); }
+.breathing-out .orb-ring.r3{ transform: scale(1); }
+.breathing-out .orb-core  { transform: scale(1); box-shadow: 0 0 25px rgba(200,184,154,0.15), inset 0 0 14px rgba(255,255,255,0.05); }
+
+.count-display {
+font-size: 0.75rem;
+letter-spacing: 0.25em;
+text-transform: uppercase;
+color: var(–warm);
+opacity: 0.65;
+margin-top: 8px;
+}
+
+/* progress bar */
+.progress-wrap {
+position: absolute;
+bottom: 48px; left: 50%;
+transform: translateX(-50%);
+width: min(320px, 70vw);
+display: flex; flex-direction: column; align-items: center; gap: 10px;
+pointer-events: none;
+}
+.progress-track {
+width: 100%; height: 1px;
+background: rgba(200,184,154,0.15);
+border-radius: 1px;
+overflow: visible;
+position: relative;
+}
+.progress-fill {
+position: absolute; left: 0; top: 0; height: 100%;
+background: linear-gradient(90deg, var(–sage), var(–warm));
+border-radius: 1px;
+transition: width 1s linear;
+box-shadow: 0 0 8px rgba(200,184,154,0.5);
+}
+.progress-label {
+font-size: 0.6rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+opacity: 0.4;
+}
+
+/* end message */
+#end-msg {
+position: absolute; inset: 0;
+display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+gap: 16px;
+background: rgba(10,10,15,0.6);
+backdrop-filter: blur(4px);
+opacity: 0; pointer-events: none;
+transition: opacity 1s ease;
+}
+#end-msg.visible { opacity: 1; pointer-events: all; }
+.end-title {
+font-family: ‘Cormorant Garamond’, serif;
+font-size: clamp(2rem, 5vw, 3.5rem);
+font-weight: 300;
+font-style: italic;
+color: var(–fog);
+}
+.end-sub {
+font-size: 0.7rem; letter-spacing: 0.2em;
+text-transform: uppercase; opacity: 0.5;
+margin-bottom: 20px;
+}
+.end-btn {
+padding: 12px 36px;
+border: 1px solid rgba(200,184,154,0.4);
+background: transparent;
+color: var(–warm);
+font-family: ‘Inconsolata’, monospace;
+font-size: 0.7rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+cursor: pointer;
+border-radius: 2px;
+transition: background 0.3s, color 0.3s;
+pointer-events: all;
+}
+.end-btn:hover { background: rgba(200,184,154,0.12); color: var(–fog); }
+
+/* cam error */
+#cam-error {
+position: absolute; inset: 0;
+display: none;
+flex-direction: column;
+align-items: center; justify-content: center;
+gap: 12px;
+background: var(–ink);
+color: var(–warm);
+font-size: 0.75rem;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+opacity: 0.6;
+text-align: center;
+padding: 40px;
+}
+#cam-error .err-icon { font-size: 2.5rem; opacity: 0.4; margin-bottom: 8px; }
+#cam-error.show { display: flex; }
+
+/* corner label */
+.corner-label {
+position: absolute;
+top: 24px; left: 28px;
+font-size: 0.6rem;
+letter-spacing: 0.25em;
+text-transform: uppercase;
+color: var(–warm);
+opacity: 0.35;
+}
+
+/* top-right close */
+.close-btn {
+position: absolute;
+top: 20px; right: 24px;
+font-size: 0.6rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+color: var(–fog);
+opacity: 0.3;
+cursor: pointer;
+pointer-events: all;
+transition: opacity 0.2s;
+background: none; border: none;
+}
+.close-btn:hover { opacity: 0.7; }
+</style>
+
+</head>
+<body>
+
+<!-- LANDING -->
+
+<div id="landing">
+  <div class="brand">Calm</div>
+  <div class="panic-ring">
+    <svg class="ring-svg" viewBox="0 0 220 220">
+      <circle cx="110" cy="110" r="106"/>
+    </svg>
+    <div class="panic-btn" id="panic-btn">
+      <div class="panic-label">Panic</div>
+      <div class="panic-sub">press when overwhelmed</div>
+    </div>
+  </div>
+  <div class="landing-footer">breathwork · grounding · presence</div>
+</div>
+
+<!-- SESSION -->
+
+<div id="session">
+  <!-- camera -->
+  <div id="cam-wrap">
+    <video id="cam-video" autoplay muted playsinline></video>
+  </div>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+
+  <!-- cam error fallback -->
+
+  <div id="cam-error">
+    <div class="err-icon">◎</div>
+    <div>Camera unavailable</div>
+    <div style="opacity:0.4;font-size:0.6rem">continuing without video</div>
+  </div>
+
+  <!-- breathe UI -->
+
+  <div id="breathe-ui">
+    <div class="corner-label">Calm · breathing</div>
+    <button class="close-btn" id="close-btn">✕ end</button>
+
+```
+<div class="phase-label" id="phase-label">breathe in</div>
+
+<div class="breath-orb-wrap" id="orb-wrap">
+  <div class="orb-ring r3"></div>
+  <div class="orb-ring r2"></div>
+  <div class="orb-ring"></div>
+  <div class="orb-core"></div>
+</div>
+
+<div class="count-display" id="count-display">round 1 of 6</div>
+
+<div class="progress-wrap">
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="progress-label" id="progress-label">beginning…</div>
+</div>
+```
+
+  </div>
+
+  <!-- end message -->
+
+  <div id="end-msg">
+    <div class="end-title">Well done.</div>
+    <div class="end-sub">you showed up for yourself</div>
+    <button class="end-btn" id="again-btn">again</button>
+    <button class="end-btn" id="done-btn">i'm ok now</button>
+  </div>
+</div>
+
+<script>
+  /* ── CONFIG ── */
+  const PHASES = [
+    { name: 'breathe in',  cls: 'breathing-in',  dur: 4 },
+    { name: 'hold',        cls: 'holding',        dur: 4 },
+    { name: 'breathe out', cls: 'breathing-out',  dur: 6 },
+  ];
+  const TOTAL_ROUNDS = 6;
+
+  /* ── ELEMENTS ── */
+  const landing    = document.getElementById('landing');
+  const panicBtn   = document.getElementById('panic-btn');
+  const session    = document.getElementById('session');
+  const camVideo   = document.getElementById('cam-video');
+  const camError   = document.getElementById('cam-error');
+  const orbWrap    = document.getElementById('orb-wrap');
+  const phaseLabel = document.getElementById('phase-label');
+  const countDisp  = document.getElementById('count-display');
+  const progFill   = document.getElementById('progress-fill');
+  const progLabel  = document.getElementById('progress-label');
+  const endMsg     = document.getElementById('end-msg');
+  const closeBtn   = document.getElementById('close-btn');
+  const againBtn   = document.getElementById('again-btn');
+  const doneBtn    = document.getElementById('done-btn');
+
+  /* ── STATE ── */
+  let stream = null;
+  let breathTimer = null;
+  let currentPhase = 0;
+  let currentRound = 0;
+  let totalTicks = 0;
+  let elapsedTicks = 0;
+
+  /* total ticks across all rounds */
+  const PHASE_TOTAL = PHASES.reduce((s, p) => s + p.dur, 0);
+  const GRAND_TOTAL = PHASE_TOTAL * TOTAL_ROUNDS;
+
+  /* ── LAUNCH ── */
+  panicBtn.addEventListener('click', async () => {
+    landing.classList.add('exit');
+    setTimeout(() => { landing.style.display = 'none'; }, 800);
+    session.classList.add('active');
+    await startCamera();
+    startBreathing();
+  });
+
+  /* ── CAMERA ── */
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      camVideo.srcObject = stream;
+    } catch (e) {
+      camError.classList.add('show');
+    }
+  }
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+
+  /* ── BREATHING ENGINE ── */
+  function startBreathing() {
+    endMsg.classList.remove('visible');
+    currentPhase = 0;
+    currentRound = 0;
+    elapsedTicks = 0;
+    updateProgress();
+    runPhase();
+  }
+
+  function runPhase() {
+    clearTimeout(breathTimer);
+    const phase = PHASES[currentPhase];
+
+    // set orb class
+    orbWrap.className = 'breath-orb-wrap';
+    void orbWrap.offsetWidth; // reflow
+    orbWrap.classList.add(phase.cls);
+
+    phaseLabel.style.opacity = '0';
+    setTimeout(() => {
+      phaseLabel.textContent = phase.name;
+      phaseLabel.style.opacity = '1';
+    }, 250);
+
+    countDisp.textContent = `round ${currentRound + 1} of ${TOTAL_ROUNDS}`;
+    progLabel.textContent = phase.name;
+
+    // tick down each second for progress
+    let elapsed = 0;
+    function tick() {
+      elapsed++;
+      elapsedTicks++;
+      updateProgress();
+      if (elapsed < phase.dur) {
+        breathTimer = setTimeout(tick, 1000);
+      } else {
+        advance();
+      }
+    }
+    breathTimer = setTimeout(tick, 1000);
+  }
+
+  function advance() {
+    currentPhase++;
+    if (currentPhase >= PHASES.length) {
+      currentPhase = 0;
+      currentRound++;
+      if (currentRound >= TOTAL_ROUNDS) {
+        finish();
+        return;
+      }
+    }
+    runPhase();
+  }
+
+  function finish() {
+    orbWrap.className = 'breath-orb-wrap';
+    phaseLabel.style.opacity = '0';
+    progFill.style.width = '100%';
+    progLabel.textContent = 'complete';
+    setTimeout(() => { endMsg.classList.add('visible'); }, 600);
+  }
+
+  function updateProgress() {
+    const pct = Math.min(100, (elapsedTicks / GRAND_TOTAL) * 100);
+    progFill.style.width = pct + '%';
+  }
+
+  /* ── CLOSE / RESTART ── */
+  closeBtn.addEventListener('click', () => reset(true));
+  doneBtn.addEventListener('click', () => reset(true));
+  againBtn.addEventListener('click', () => {
+    endMsg.classList.remove('visible');
+    startBreathing();
+  });
+
+  function reset(goHome) {
+    clearTimeout(breathTimer);
+    stopCamera();
+    session.classList.remove('active');
+    endMsg.classList.remove('visible');
+    camError.classList.remove('show');
+    orbWrap.className = 'breath-orb-wrap';
+    if (goHome) {
+      landing.style.display = '';
+      landing.style.opacity = '0';
+      landing.style.transform = 'scale(0.97)';
+      landing.classList.remove('exit');
+      setTimeout(() => {
+        landing.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+        landing.style.opacity = '1';
+        landing.style.transform = 'scale(1)';
+      }, 50);
+    }
+  }
+</script>
+
+</body>
+</html>
